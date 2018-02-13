@@ -1,0 +1,8 @@
+[package]
+name = "unzipr"
+version = "0.1.0"
+authors = ["Taivo Käsper <taivo.kasper@gmail.com>"]
+
+[dependencies]
+clap = "2.29.4"
+zip = "0.3.0"
