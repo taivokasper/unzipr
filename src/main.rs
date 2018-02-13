@@ -6,7 +6,7 @@ use clap::{Arg, App};
 use std::path::Path;
 use std::fs::File;
 use zip::{ZipArchive};
-use std::io::{Read, BufWriter};
+use std::io::{Read, BufWriter, BufReader};
 use std::io::Cursor;
 
 fn main() {
@@ -32,16 +32,17 @@ fn main() {
     if list {
         let source_file = Path::new(files[0]);
         let rec_files = files[1..].to_vec();
-        list_files(source_file, &rec_files)
+
+        let z_file: File = File::open(&source_file).unwrap();
+        let mut archive = ZipArchive::new(z_file).unwrap();
+
+        list_files(&mut archive, &rec_files)
     } else {
         println!("Unzip is not implemented yet!")
     }
 }
 
-fn list_files(file_name: &Path, rec_files: &Vec<&str>) {
-    let z_file = File::open(&file_name).unwrap();
-    let mut archive = ZipArchive::new(z_file).unwrap();
-
+fn list_files<R: std::io::Read + io::Seek>(archive: &mut ZipArchive<R>, rec_files: &Vec<&str>) {
     for i in 0..archive.len() {
         let mut file = archive.by_index(i).unwrap();
         println!("File in zip is {}", file.name());
@@ -51,8 +52,8 @@ fn list_files(file_name: &Path, rec_files: &Vec<&str>) {
         io::copy(&mut file, &mut BufWriter::new(&mut buf)).unwrap();
         println!("{:?}", buf);
 
-        let mut archive = ZipArchive::new(Cursor::new(buf)).unwrap();
-        list_files_of_files(archive, &rec_files);
+        let mut archive2 = ZipArchive::new(Cursor::new(buf)).unwrap();
+        list_files_of_files(archive2, &rec_files);
     }
 }
 
