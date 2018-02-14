@@ -42,7 +42,14 @@ fn main() {
             },
             Ok(file) => file
         };
-        let mut archive = ZipArchive::new(z_file).unwrap();
+
+        let mut archive = match ZipArchive::new(z_file) {
+            Ok(archive) => archive,
+            Err(e) => {
+                println!("Unable to list contents for file {:?} because: {}", source_file, e);
+                return;
+            }
+        };
 
         list_files_rec(&mut archive, &rec_files)
     } else {
