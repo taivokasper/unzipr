@@ -5,7 +5,8 @@ use std::io;
 use clap::{Arg, App};
 use std::path::Path;
 use std::fs::File;
-use zip::{ZipArchive};
+use zip::ZipArchive;
+use zip::result::ZipError;
 use std::io::BufWriter;
 use std::io::Cursor;
 
@@ -36,33 +37,39 @@ fn main() {
         let z_file: File = File::open(&source_file).unwrap();
         let mut archive = ZipArchive::new(z_file).unwrap();
 
-        list_files(&mut archive, &rec_files)
+        list_files_rec(&mut archive, &rec_files)
     } else {
         println!("Unzip is not implemented yet!")
     }
 }
 
-fn list_files<R: std::io::Read + io::Seek>(archive: &mut ZipArchive<R>, rec_files: &Vec<&str>) {
+fn list_files_rec<R: std::io::Read + io::Seek>(archive: &mut ZipArchive<R>, rec_files: &Vec<&str>) {
     if rec_files.is_empty() {
-        list_files_of_files(archive);
-    }
-    else {
+        list_files_in_archive(archive);
+    } else {
         let source_file = rec_files[0];
         let deep_files = rec_files[1..].to_vec();
 
-        let mut file = archive.by_name(source_file).unwrap();
+        match archive.by_name(source_file) {
+            Ok(mut file) => {
+                let mut buf = Vec::new();
+                io::copy(&mut file, &mut BufWriter::new(&mut buf)).unwrap();
 
-        let mut buf = Vec::new();
-        io::copy(&mut file, &mut BufWriter::new(&mut buf)).unwrap();
-
-        match ZipArchive::new(Cursor::new(buf)) {
-            Ok(mut a) => list_files(&mut a, &deep_files),
-            Err(e) => println!("Unable to list contents for file {} because: {}", source_file, e)
+                match ZipArchive::new(Cursor::new(buf)) {
+                    Ok(mut a) => list_files_rec(&mut a, &deep_files),
+                    Err(e) => println!("Unable to list contents for file {} because: {}", source_file, e)
+                }
+            }
+//            Err(ZipError::FileNotFound) => {
+//                println!("Couldn't find {}. Did you mean any of these:", source_file);
+//                list_files_in_archive(archive);
+//            }
+            Err(e) => println!("Couldn't read entry {} because: {}", source_file, e)
         }
     }
 }
 
-fn list_files_of_files<R: std::io::Read + io::Seek>(archive: &mut ZipArchive<R>) {
+fn list_files_in_archive<R: std::io::Read + io::Seek>(archive: &mut ZipArchive<R>) {
     for i in 0..archive.len() {
         let file = archive.by_index(i).unwrap();
         println!("{}", file.name());
