@@ -50,21 +50,33 @@ fn list_files_rec<R: std::io::Read + io::Seek>(archive: &mut ZipArchive<R>, rec_
         let source_file = rec_files[0];
         let deep_files = rec_files[1..].to_vec();
 
-        match archive.by_name(source_file) {
-            Ok(mut file) => {
-                let mut buf = Vec::new();
-                io::copy(&mut file, &mut BufWriter::new(&mut buf)).unwrap();
+        let print_help: bool;
+        {
+            let file_result = archive.by_name(source_file);
+            print_help = match file_result {
+                Ok(mut file) => {
+                    let mut buf = Vec::new();
+                    io::copy(&mut file, &mut BufWriter::new(&mut buf)).unwrap();
 
-                match ZipArchive::new(Cursor::new(buf)) {
-                    Ok(mut a) => list_files_rec(&mut a, &deep_files),
-                    Err(e) => println!("Unable to list contents for file {} because: {}", source_file, e)
+                    match ZipArchive::new(Cursor::new(buf)) {
+                        Ok(mut a) => list_files_rec(&mut a, &deep_files),
+                        Err(e) => println!("Unable to list contents for file {} because: {}", source_file, e)
+                    }
+                    false
+                },
+                Err(ZipError::FileNotFound) => {
+                    true
+                },
+                Err(e) => {
+                    println!("Couldn't read entry {} because: {}", source_file, e);
+                    false
                 }
-            }
-//            Err(ZipError::FileNotFound) => {
-//                println!("Couldn't find {}. Did you mean any of these:", source_file);
-//                list_files_in_archive(archive);
-//            }
-            Err(e) => println!("Couldn't read entry {} because: {}", source_file, e)
+            };
+        }
+
+        if print_help {
+            println!("Couldn't find {}. Did you mean any of these:", source_file);
+            list_files_in_archive(archive);
         }
     }
 }
