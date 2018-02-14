@@ -4,6 +4,7 @@ extern crate zip;
 use std::io;
 use clap::{Arg, App};
 use std::path::Path;
+use std::error::Error;
 use std::fs::File;
 use zip::ZipArchive;
 use zip::result::ZipError;
@@ -34,7 +35,13 @@ fn main() {
         let source_file = Path::new(files[0]);
         let rec_files = files[1..].to_vec();
 
-        let z_file: File = File::open(&source_file).unwrap();
+        let z_file: File = match File::open(&source_file) {
+            Err(why) => {
+                println!("Can not open {:?} : {}", &source_file, why.description());
+                return;
+            },
+            Ok(file) => file
+        };
         let mut archive = ZipArchive::new(z_file).unwrap();
 
         list_files_rec(&mut archive, &rec_files)
