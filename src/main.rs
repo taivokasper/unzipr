@@ -6,7 +6,7 @@ use clap::{Arg, App};
 use std::path::Path;
 use std::fs::File;
 use zip::{ZipArchive};
-use std::io::{Read, BufWriter, BufReader};
+use std::io::BufWriter;
 use std::io::Cursor;
 
 fn main() {
@@ -43,23 +43,28 @@ fn main() {
 }
 
 fn list_files<R: std::io::Read + io::Seek>(archive: &mut ZipArchive<R>, rec_files: &Vec<&str>) {
-    for i in 0..archive.len() {
-        let mut file = archive.by_index(i).unwrap();
-        println!("File in zip is {}", file.name());
+    if rec_files.is_empty() {
+        list_files_of_files(archive);
+    }
+    else {
+        let source_file = rec_files[0];
+        let deep_files = rec_files[1..].to_vec();
+
+        let mut file = archive.by_name(source_file).unwrap();
 
         let mut buf = Vec::new();
-
         io::copy(&mut file, &mut BufWriter::new(&mut buf)).unwrap();
-        println!("{:?}", buf);
 
-        let mut archive2 = ZipArchive::new(Cursor::new(buf)).unwrap();
-        list_files_of_files(archive2, &rec_files);
+        match ZipArchive::new(Cursor::new(buf)) {
+            Ok(mut a) => list_files(&mut a, &deep_files),
+            Err(e) => println!("Unable to list contents for file {} because: {}", source_file, e)
+        }
     }
 }
 
-fn list_files_of_files(mut archive: ZipArchive<Cursor<Vec<u8>>>, rec_files: &Vec<&str>) {
+fn list_files_of_files<R: std::io::Read + io::Seek>(archive: &mut ZipArchive<R>) {
     for i in 0..archive.len() {
         let file = archive.by_index(i).unwrap();
-        println!("File in zip is {}", file.name());
+        println!("{}", file.name());
     }
 }
