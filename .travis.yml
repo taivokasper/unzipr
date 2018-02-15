@@ -1,2 +1,11 @@
 language: rust
 cache: cargo
+script: cargo test --verbose && cargo build --release
+deploy:
+  provider: releases
+  api_key:
+    secure: kWQONSHBNMHwbejtT5QWJk5dHJXZoEAHOBYPQe2uuMPjRF5vVOWflysRjr+wNh/oupEb2vdEDIsXes33L1sI9iRyi1o6wje8Ab7P0kYOuA2hVFjWAMdnGM78ZAaWTczvNw9ofYx+KJu4WX6Ud0O5WZ+SmOdmrhnILCHppvYsky5ey96aePFonFI9AVMSQLhoTYMy9lGIYvmBdgxSuWbEWbQIopkaDcYCFfiz7WEVlKC0atC8m6YS9JeZuYizJIRgR6GeMM9lBR45Hz662/0ZhRzzGUv4yKw/B0G0hzn1C1ycHfetSht+hOcOC506zrBReJW/MFdHrqG3W1XzO4TDEF65P/BhExolV93mJEBA1+8NIMBxO1OyUffQl483GygiUMAbJg2uXxFmRxttAkyundc2cSNSTQ62r1Y5HzTSIEH9B8UO77mW+ng6iIykHeYR1e8RcDMZLnPzK+WwcD6NnGxrxLlf7/HBHTbdfK+04ZcRDH+IPmE6x1ZwLuTb6UK2nvqVQ7p6sfFwzUV1lfudPwASGtVWmQRsYV9jzq2UBUplWgUkAIV0QBFFe7zrNO/6p1W+IR+zsTNounhLsqigcAYV33HNYFrdCdbP5sIOR4FVP+vSjTW0/IBq/9SdjDXnZab+F5gA9cnzdKbbcmA/ps4X47wqhxp1NrSoMWF7K10=
+  file: target/release/unzipr
+  skip_cleanup: true
+  on:
+    tags: true
