@@ -1,4 +1,4 @@
-# unzipr
+# Unzipr
 [![Build Status](https://travis-ci.org/taivokasper/unzipr.svg?branch=master)](https://travis-ci.org/taivokasper/unzipr)
 [![release](http://github-release-version.herokuapp.com/github/taivokasper/unzipr/release.svg?style=flat)](https://github.com/taivokasper/unzipr/releases/latest)
 
