@@ -11,6 +11,42 @@ use zip::result::ZipError;
 use std::io::BufWriter;
 use std::io::Cursor;
 
+struct FileArchive<'a> {
+    file_path: &'a Path
+}
+
+impl<'a> FileArchive<'a> {
+    fn new(zip_file_path: &'a Path) -> FileArchive {
+        return FileArchive { file_path: &zip_file_path }
+    }
+    fn to_zip_archive(&self) -> ZipArchive<File> {
+        let opened_file: File = File::open(&self.file_path).unwrap();
+        return ZipArchive::new(opened_file).unwrap();
+    }
+}
+
+struct BytesArchive {
+    bytes: Vec<u8>
+}
+
+impl BytesArchive {
+    fn new(archive_bytes: Vec<u8>) -> BytesArchive {
+        return BytesArchive { bytes: archive_bytes }
+    }
+    fn to_zip_archive(&self) -> ZipArchive<Cursor<Vec<u8>>> {
+        return ZipArchive::new(Cursor::new(self.bytes.clone())).unwrap();
+    }
+}
+
+fn get_files_list<R: std::io::Read + io::Seek>(archive: &mut ZipArchive<R>) -> Vec<String> {
+    let mut name_vec = Vec::new();
+    for i in 0..archive.len() {
+        let file = archive.by_index(i).unwrap();
+        name_vec.push(file.name().to_string())
+    }
+    return name_vec;
+}
+
 fn main() {
     let matches = App::new("unzipr")
         .version("0.1.0")
@@ -31,27 +67,12 @@ fn main() {
     let list = matches.is_present("list");
     let files: Vec<&str> = matches.values_of("files").unwrap().collect();
 
+    let source_file = Path::new(files[0]);
+    let file_archive = FileArchive::new(source_file);
+
     if list {
-        let source_file = Path::new(files[0]);
         let rec_files = files[1..].to_vec();
-
-        let z_file: File = match File::open(&source_file) {
-            Err(why) => {
-                println!("Can not open {:?} : {}", &source_file, why.description());
-                return;
-            },
-            Ok(file) => file
-        };
-
-        let mut archive = match ZipArchive::new(z_file) {
-            Ok(archive) => archive,
-            Err(e) => {
-                println!("Unable to list contents for file {:?} because: {}", source_file, e);
-                return;
-            }
-        };
-
-        list_files_rec(&mut archive, &rec_files)
+        list_files_rec(&mut file_archive.to_zip_archive(), &rec_files)
     } else {
         println!("Unzip is not implemented yet!")
     }
@@ -59,45 +80,19 @@ fn main() {
 
 fn list_files_rec<R: std::io::Read + io::Seek>(archive: &mut ZipArchive<R>, rec_files: &Vec<&str>) {
     if rec_files.is_empty() {
-        list_files_in_archive(archive);
+        for item in get_files_list(archive) {
+            println!("{}", item)
+        }
     } else {
         let source_file = rec_files[0];
         let deep_files = rec_files[1..].to_vec();
 
-        let print_help: bool;
-        {
-            let file_result = archive.by_name(source_file);
-            print_help = match file_result {
-                Ok(mut file) => {
-                    let mut buf = Vec::new();
-                    io::copy(&mut file, &mut BufWriter::new(&mut buf)).unwrap();
+        let mut file = archive.by_name(source_file).unwrap();
 
-                    match ZipArchive::new(Cursor::new(buf)) {
-                        Ok(mut a) => list_files_rec(&mut a, &deep_files),
-                        Err(e) => println!("Unable to list contents for file {} because: {}", source_file, e)
-                    }
-                    false
-                },
-                Err(ZipError::FileNotFound) => {
-                    true
-                },
-                Err(e) => {
-                    println!("Couldn't read entry {} because: {}", source_file, e);
-                    false
-                }
-            };
-        }
+        let mut buf = Vec::new();
+        io::copy(&mut file, &mut BufWriter::new(&mut buf)).unwrap();
 
-        if print_help {
-            println!("Couldn't find {}. Did you mean any of these:", source_file);
-            list_files_in_archive(archive);
-        }
-    }
-}
-
-fn list_files_in_archive<R: std::io::Read + io::Seek>(archive: &mut ZipArchive<R>) {
-    for i in 0..archive.len() {
-        let file = archive.by_index(i).unwrap();
-        println!("{}", file.name());
+        let bytes_archive = BytesArchive::new(buf);
+        list_files_rec(&mut bytes_archive.to_zip_archive(), &deep_files);
     }
 }
