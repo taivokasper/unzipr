@@ -47,6 +47,16 @@ fn get_files_list<R: std::io::Read + io::Seek>(archive: &mut ZipArchive<R>) -> V
     return name_vec;
 }
 
+#[test]
+fn test_get_files_list() {
+    let mut test_archive = FileArchive::new(Path::new("tests/resources/test.zip")).to_zip_archive();
+    let files_list = get_files_list(&mut test_archive);
+
+    assert_eq!(2, files_list.len());
+    assert_eq!("test/", files_list[0]);
+    assert_eq!("test/test.txt", files_list[1]);
+}
+
 fn main() {
     let matches = App::new("unzipr")
         .version("0.1.0")
