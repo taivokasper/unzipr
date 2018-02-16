@@ -17,10 +17,6 @@ impl<'a> FileArchive<'a> {
     fn new(zip_file_path: &'a Path) -> FileArchive {
         return FileArchive { file_path: &zip_file_path }
     }
-    fn to_zip_archive(&self) -> ZipArchive<File> {
-        let opened_file: File = File::open(&self.file_path).unwrap();
-        return ZipArchive::new(opened_file).unwrap();
-    }
 }
 
 struct BytesArchive {
@@ -31,9 +27,23 @@ impl BytesArchive {
     fn new(archive_bytes: Vec<u8>) -> BytesArchive {
         return BytesArchive { bytes: archive_bytes }
     }
+}
+
+impl Archive<Cursor<Vec<u8>>> for BytesArchive {
     fn to_zip_archive(&self) -> ZipArchive<Cursor<Vec<u8>>> {
         return ZipArchive::new(Cursor::new(self.bytes.clone())).unwrap();
     }
+}
+
+impl<'a> Archive<File> for FileArchive<'a> {
+    fn to_zip_archive(&self) -> ZipArchive<File> {
+        let opened_file: File = File::open(&self.file_path).unwrap();
+        return ZipArchive::new(opened_file).unwrap();
+    }
+}
+
+trait Archive<T: std::io::Read + io::Seek> {
+    fn to_zip_archive(&self) -> ZipArchive<T>;
 }
 
 fn get_files_list<R: std::io::Read + io::Seek>(archive: &mut ZipArchive<R>) -> Vec<String> {
