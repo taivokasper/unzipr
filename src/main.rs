@@ -4,10 +4,8 @@ extern crate zip;
 use std::io;
 use clap::{Arg, App};
 use std::path::Path;
-use std::error::Error;
 use std::fs::File;
 use zip::ZipArchive;
-use zip::result::ZipError;
 use std::io::BufWriter;
 use std::io::Cursor;
 
@@ -82,17 +80,18 @@ fn main() {
 
     if list {
         let rec_files = files[1..].to_vec();
-        list_files_rec(&mut file_archive.to_zip_archive(), &rec_files)
+        let files_list = list_files_rec(&mut file_archive.to_zip_archive(), &rec_files);
+        for file_name in files_list {
+            println!("{}", file_name);
+        }
     } else {
         println!("Unzip is not implemented yet!")
     }
 }
 
-fn list_files_rec<R: std::io::Read + io::Seek>(archive: &mut ZipArchive<R>, rec_files: &Vec<&str>) {
+fn list_files_rec<R: std::io::Read + io::Seek>(archive: &mut ZipArchive<R>, rec_files: &Vec<&str>) -> Vec<String> {
     if rec_files.is_empty() {
-        for item in get_files_list(archive) {
-            println!("{}", item)
-        }
+        return get_files_list(archive);
     } else {
         let source_file = rec_files[0];
         let deep_files = rec_files[1..].to_vec();
@@ -103,6 +102,17 @@ fn list_files_rec<R: std::io::Read + io::Seek>(archive: &mut ZipArchive<R>, rec_
         io::copy(&mut file, &mut BufWriter::new(&mut buf)).unwrap();
 
         let bytes_archive = BytesArchive::new(buf);
-        list_files_rec(&mut bytes_archive.to_zip_archive(), &deep_files);
+        return list_files_rec(&mut bytes_archive.to_zip_archive(), &deep_files);
     }
+}
+
+#[test]
+fn test_listing_files_in_nested_zip() {
+    let mut test_archive = FileArchive::new(Path::new("tests/resources/test-test.zip")).to_zip_archive();
+    let nested_archives = vec!["test.zip"];
+    let files_list = list_files_rec(&mut test_archive, &nested_archives);
+
+    assert_eq!(2, files_list.len());
+    assert_eq!("test/", files_list[0]);
+    assert_eq!("test/test.txt", files_list[1]);
 }
