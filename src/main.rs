@@ -10,6 +10,7 @@ use std::io::BufWriter;
 use std::io::Cursor;
 use std::io::Read;
 use std::rc::Rc;
+use std::io::Write;
 
 type ByteArchive = ZipArchive<Cursor<Vec<u8>>>;
 
@@ -68,14 +69,22 @@ fn main() {
     let source_file = Path::new(files[0]);
     let archive = new_from_file(source_file);
 
+    let rec_files = files[1..].to_vec();
+
     if list {
-        let rec_files = files[1..].to_vec();
         let mut inner_archive = parse_files_rec(Rc::new(archive), &rec_files);
         for file_name in get_files_list(Rc::get_mut(&mut inner_archive).unwrap()) {
             println!("{}", file_name);
         }
     } else {
-        println!("Unzip is not implemented yet!")
+        let (last, rec_files) = rec_files.as_slice().split_last().unwrap();
+        let mut inner_archive = parse_files_rec(Rc::new(archive), &rec_files.to_vec());
+        let mut file = Rc::get_mut(&mut inner_archive).unwrap().by_name(last).unwrap();
+
+        let mut buf = Vec::new();
+
+        io::copy(&mut file, &mut BufWriter::new(&mut buf)).unwrap();
+        io::stdout().write(&buf).unwrap();
     }
 }
 

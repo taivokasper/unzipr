@@ -26,3 +26,13 @@ if [ "$output" != "$expected" ]; then
 echo "'$output' does not equal '$expected'"
     exit 1
 fi
+
+#Test 3
+# Test unpacking files in nested zip file
+output=`$binary tests/resources/test-test.zip test.zip test/test.txt`
+expected="Hello"
+
+if [ "$output" != "$expected" ]; then
+echo "'$output' does not equal '$expected'"
+    exit 1
+fi
