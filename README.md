@@ -11,9 +11,10 @@ $ unzipr -l test-zip-of-zip.zip test.zip
 test/
 test/test.txt
 ```
-* Unpacking files from a zip file in a zip file
+* Unpacking files from a nested zip file to standard out
 ```bash
-Not yet implemented
+$ unzipr test-zip-of-zip.zip test.zip test/test.txt
+Hello World!
 ```
 
 # Installing on MacOs with Homebrew
