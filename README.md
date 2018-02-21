@@ -13,7 +13,7 @@ test/test.txt
 ```
 * Unpacking files from a nested zip file to standard out
 ```bash
-$ unzipr test-zip-of-zip.zip test.zip test/test.txt
+$ unzipr -p test-zip-of-zip.zip test.zip test/test.txt
 Hello World!
 ```
 

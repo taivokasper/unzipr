@@ -57,6 +57,12 @@ fn main() {
             .required(false)
             .takes_value(false)
             .help("list files instead of unpacking"))
+        .arg(Arg::with_name("pipe")
+            .short("p")
+            .long("pipe")
+            .required(false)
+            .takes_value(false)
+            .help("extract files to pipe, no messages"))
         .arg(Arg::with_name("files")
             .multiple(true)
             .required(true)
@@ -64,6 +70,7 @@ fn main() {
         .get_matches();
 
     let list = matches.is_present("list");
+    let pipe = matches.is_present("pipe");
     let files: Vec<&str> = matches.values_of("files").unwrap().collect();
 
     let source_file = Path::new(files[0]);
@@ -76,7 +83,7 @@ fn main() {
         for file_name in get_files_list(Rc::get_mut(&mut inner_archive).unwrap()) {
             println!("{}", file_name);
         }
-    } else {
+    } else if pipe {
         let (last, rec_files) = rec_files.as_slice().split_last().unwrap();
         let mut inner_archive = parse_files_rec(Rc::new(archive), &rec_files.to_vec());
         let mut file = Rc::get_mut(&mut inner_archive).unwrap().by_name(last).unwrap();
