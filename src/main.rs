@@ -50,7 +50,10 @@ fn main() {
 
     match action {
         Ok(a) => a.exec(),
-        Err(msg) => println!("{}", msg)
+        Err(msg) => {
+            println!("{}", msg);
+            std::process::exit(1);
+        }
     };
 }
 
