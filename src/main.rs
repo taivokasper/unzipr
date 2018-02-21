@@ -73,10 +73,12 @@ fn main() {
     let pipe = matches.is_present("pipe");
     let files: Vec<&str> = matches.values_of("files").unwrap().collect();
 
-    let source_file = Path::new(files[0]);
-    let archive = new_from_file(source_file);
+    let (input_file, nested_files) = files.as_slice().split_first().unwrap();
 
-    let rec_files = files[1..].to_vec();
+    let source_file = Path::new(input_file);
+    let rec_files = nested_files.to_vec();
+
+    let archive = new_from_file(source_file);
 
     if list {
         let mut inner_archive = parse_files_rec(Rc::new(archive), &rec_files);
