@@ -49,16 +49,21 @@ fn main() {
     }
 
     match action {
-        Ok(a) => a.exec(),
-        Err(msg) => {
-            println!("{}", msg);
-            std::process::exit(1);
-        }
+        Ok(a) => match a.exec() {
+            Ok(_) => (),
+            Err(msg) => unwrap_process_result(msg)
+        },
+        Err(msg) => unwrap_process_result(msg)
     };
 }
 
+fn unwrap_process_result(msg: &'static str) {
+    println!("{}", msg);
+    std::process::exit(1);
+}
+
 trait Action {
-    fn exec(&self);
+    fn exec(&self) -> MsgResult<()>;
 }
 
 struct ListActionInput {
@@ -99,11 +104,12 @@ fn test_nested_input_for_list_action() {
 }
 
 impl Action for ListActionInput {
-    fn exec(&self) {
+    fn exec(&self) -> MsgResult<()> {
         let mut inner_archive = parse_file_to_archive(&self.input_file_name, &self.nested_file_names);
         for file_name in get_files_list(Rc::get_mut(&mut inner_archive).unwrap()) {
             println!("{}", file_name);
         }
+        return Ok(());
     }
 }
 
@@ -154,7 +160,7 @@ fn test_nested_input_for_pipe_unpack_action() {
 }
 
 impl Action for PipeUnpackActionInput {
-    fn exec(&self) {
+    fn exec(&self) -> MsgResult<()> {
         let mut inner_archive = parse_file_to_archive(&self.input_file_name, &self.nested_file_names);
         let mut file = Rc::get_mut(&mut inner_archive).unwrap().by_name(self.unpack_target_file.as_ref()).unwrap();
 
@@ -162,6 +168,7 @@ impl Action for PipeUnpackActionInput {
 
         io::copy(&mut file, &mut BufWriter::new(&mut buf)).unwrap();
         io::stdout().write(&buf).unwrap();
+        return Ok(());
     }
 }
 
