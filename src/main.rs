@@ -12,38 +12,6 @@ use std::rc::Rc;
 type ByteArchive = ZipArchive<Cursor<Vec<u8>>>;
 type MsgResult<T> = Result<T, &'static str>;
 
-fn new_from_file(zip_file_path: &Path) -> ByteArchive {
-    let mut opened_file: File = File::open(&zip_file_path).unwrap();
-
-    let mut data = Vec::new();
-    opened_file.read_to_end(&mut data).unwrap();
-
-    return ZipArchive::new(Cursor::new(data)).unwrap();
-}
-
-fn new_from_bytes(bytes: Vec<u8>) -> ByteArchive {
-    return ZipArchive::new(Cursor::new(bytes)).unwrap();
-}
-
-fn get_files_list(archive: &mut ByteArchive) -> Vec<String> {
-    let mut name_vec = Vec::new();
-    for i in 0..archive.len() {
-        let file = archive.by_index(i).unwrap();
-        name_vec.push(file.name().to_string())
-    }
-    return name_vec;
-}
-
-#[test]
-fn test_get_files_list() {
-    let mut archive = new_from_file(Path::new("tests/resources/test.zip"));
-    let files_list = get_files_list(&mut archive);
-
-    assert_eq!(2, files_list.len());
-    assert_eq!("test/", files_list[0]);
-    assert_eq!("test/test.txt", files_list[1]);
-}
-
 fn main() {
     let matches = App::new("unzipr")
         .version("0.1.0")
@@ -113,6 +81,20 @@ impl ListActionInput {
     }
 }
 
+#[test]
+fn test_empty_input_for_list_action() {
+    let err = ListActionInput::new(Vec::new()).err().unwrap();
+    assert_eq!("Not a valid input files argument. Should supply at least one value", err);
+}
+#[test]
+fn test_single_input_for_list_action() {
+    ListActionInput::new(["test_input_file"].to_vec()).unwrap();
+}
+#[test]
+fn test_nested_input_for_list_action() {
+    ListActionInput::new(["test_input_file", "inner_nested_file"].to_vec()).unwrap();
+}
+
 impl Action for ListActionInput {
     fn exec(&self) {
         let mut inner_archive = parse_file_to_archive(&self.input_file_name, &self.nested_file_names);
@@ -153,6 +135,21 @@ impl PipeUnpackActionInput {
     }
 }
 
+#[test]
+fn test_empty_input_for_pipe_unpack_action() {
+    let err = PipeUnpackActionInput::new(Vec::new()).err().unwrap();
+    assert_eq!("Not a valid input files argument. Should supply at least one value", err);
+}
+#[test]
+fn test_single_input_for_pipe_unpack_action() {
+    let err = PipeUnpackActionInput::new(["test_input_file"].to_vec()).err().unwrap();
+    assert_eq!("Cannot get unpack target file", err);
+}
+#[test]
+fn test_nested_input_for_pipe_unpack_action() {
+    PipeUnpackActionInput::new(["test_input_file", "inner_nested_file"].to_vec()).unwrap();
+}
+
 impl Action for PipeUnpackActionInput {
     fn exec(&self) {
         let mut inner_archive = parse_file_to_archive(&self.input_file_name, &self.nested_file_names);
@@ -163,6 +160,53 @@ impl Action for PipeUnpackActionInput {
         io::copy(&mut file, &mut BufWriter::new(&mut buf)).unwrap();
         io::stdout().write(&buf).unwrap();
     }
+}
+
+fn new_from_file(zip_file_path: &Path) -> ByteArchive {
+    let mut opened_file: File = File::open(&zip_file_path).unwrap();
+
+    let mut data = Vec::new();
+    opened_file.read_to_end(&mut data).unwrap();
+
+    return ZipArchive::new(Cursor::new(data)).unwrap();
+}
+#[test]
+fn test_new_archive_from_file() {
+    let archive = new_from_file(Path::new("tests/resources/test.zip"));
+    assert_eq!(2, archive.len());
+}
+
+fn new_from_bytes(bytes: Vec<u8>) -> ByteArchive {
+    return ZipArchive::new(Cursor::new(bytes)).unwrap();
+}
+#[test]
+fn test_new_archive_from_bytes() {
+    let mut opened_file: File = File::open(Path::new("tests/resources/test.zip")).unwrap();
+
+    let mut buf = Vec::new();
+    io::copy(&mut opened_file, &mut BufWriter::new(&mut buf)).unwrap();
+    let archive = new_from_bytes(buf);
+
+    assert_eq!(2, archive.len());
+}
+
+fn get_files_list(archive: &mut ByteArchive) -> Vec<String> {
+    let mut name_vec = Vec::new();
+    for i in 0..archive.len() {
+        let file = archive.by_index(i).unwrap();
+        name_vec.push(file.name().to_string())
+    }
+    return name_vec;
+}
+
+#[test]
+fn test_get_files_list() {
+    let mut archive = new_from_file(Path::new("tests/resources/test.zip"));
+    let files_list = get_files_list(&mut archive);
+
+    assert_eq!(2, files_list.len());
+    assert_eq!("test/", files_list[0]);
+    assert_eq!("test/test.txt", files_list[1]);
 }
 
 fn parse_file_to_archive<'a>(input_file_name: &'a String, nested_file_names: &'a Vec<String>) -> Rc<ByteArchive> {
