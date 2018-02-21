@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -e
 
 binary=target/debug/unzipr
 if [ ! -e "$binary" ]; then
