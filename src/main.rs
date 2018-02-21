@@ -3,16 +3,14 @@ extern crate zip;
 
 use std::io;
 use clap::{Arg, App};
+use zip::ZipArchive;
+use std::io::{BufWriter, Cursor, Read, Write};
 use std::path::Path;
 use std::fs::File;
-use zip::ZipArchive;
-use std::io::BufWriter;
-use std::io::Cursor;
-use std::io::Read;
 use std::rc::Rc;
-use std::io::Write;
 
 type ByteArchive = ZipArchive<Cursor<Vec<u8>>>;
+type MsgResult<T> = Result<T, &'static str>;
 
 fn new_from_file(zip_file_path: &Path) -> ByteArchive {
     let mut opened_file: File = File::open(&zip_file_path).unwrap();
@@ -73,28 +71,107 @@ fn main() {
     let pipe = matches.is_present("pipe");
     let files: Vec<&str> = matches.values_of("files").unwrap().collect();
 
-    let (input_file, nested_files) = files.as_slice().split_first().unwrap();
-
-    let source_file = Path::new(input_file);
-    let rec_files = nested_files.to_vec();
-
-    let archive = new_from_file(source_file);
-
+    let action: MsgResult<Box<Action>>;
     if list {
-        let mut inner_archive = parse_files_rec(Rc::new(archive), &rec_files);
+        action = ListActionInput::new(files.clone());
+    } else if pipe {
+        action = PipeUnpackActionInput::new(files.clone());
+    } else {
+        unimplemented!("Unpack to current dir not yet implemented");
+    }
+
+    match action {
+        Ok(a) => a.exec(),
+        Err(msg) => println!("{}", msg)
+    };
+}
+
+trait Action {
+    fn exec(&self);
+}
+
+struct ListActionInput {
+    input_file_name: String,
+    nested_file_names: Vec<String>
+}
+
+impl ListActionInput {
+    fn new(input: Vec<&str>) -> MsgResult<Box<Action>> {
+        match input.as_slice().split_first() {
+            None => return Err("Not a valid input files argument. Should supply at least one value"),
+            Some(split_result) => {
+                let (input_file, nested_files) = split_result;
+
+                return Ok(Box::new(ListActionInput {
+                    input_file_name: input_file.to_string(),
+                    nested_file_names: nested_files.iter()
+                        .map(|x| x.to_string())
+                        .collect::<Vec<String>>()
+                }));
+            }
+        };
+    }
+}
+
+impl Action for ListActionInput {
+    fn exec(&self) {
+        let mut inner_archive = parse_file_to_archive(&self.input_file_name, &self.nested_file_names);
         for file_name in get_files_list(Rc::get_mut(&mut inner_archive).unwrap()) {
             println!("{}", file_name);
         }
-    } else if pipe {
-        let (last, rec_files) = rec_files.as_slice().split_last().unwrap();
-        let mut inner_archive = parse_files_rec(Rc::new(archive), &rec_files.to_vec());
-        let mut file = Rc::get_mut(&mut inner_archive).unwrap().by_name(last).unwrap();
+    }
+}
+
+struct PipeUnpackActionInput {
+    input_file_name: String,
+    nested_file_names: Vec<String>,
+    unpack_target_file: String
+}
+
+impl PipeUnpackActionInput {
+    fn new(input: Vec<&str>) -> MsgResult<Box<Action>> {
+        match input.as_slice().split_first() {
+            None => return Err("Not a valid input files argument. Should supply at least one value"),
+            Some(first_split_result) => {
+                let (input_file, nested_files) = first_split_result;
+                match nested_files.split_last() {
+                    None => return Err("Cannot get unpack target file"),
+                    Some(second_split_result) => {
+                        let (target_file, middle_files) = second_split_result;
+
+                        return Ok(Box::new(PipeUnpackActionInput {
+                            input_file_name: input_file.to_string(),
+                            nested_file_names: middle_files.iter()
+                                .map(|x| x.to_string())
+                                .collect::<Vec<String>>(),
+                            unpack_target_file: target_file.to_string()
+                        }));
+                    }
+                }
+            }
+        };
+    }
+}
+
+impl Action for PipeUnpackActionInput {
+    fn exec(&self) {
+        let mut inner_archive = parse_file_to_archive(&self.input_file_name, &self.nested_file_names);
+        let mut file = Rc::get_mut(&mut inner_archive).unwrap().by_name(self.unpack_target_file.as_ref()).unwrap();
 
         let mut buf = Vec::new();
 
         io::copy(&mut file, &mut BufWriter::new(&mut buf)).unwrap();
         io::stdout().write(&buf).unwrap();
     }
+}
+
+fn parse_file_to_archive<'a>(input_file_name: &'a String, nested_file_names: &'a Vec<String>) -> Rc<ByteArchive> {
+    let archive = new_from_file(Path::new(&input_file_name));
+    return parse_files_rec(Rc::new(archive), &string_vec_to_str_vec(&nested_file_names));
+}
+
+fn string_vec_to_str_vec<'a>(input: &'a Vec<String>) -> Vec<&'a str> {
+    return input.iter().map(|s| s.as_ref()).collect::<Vec<&str>>();
 }
 
 fn parse_files_rec(mut archive: Rc<ByteArchive>, rec_files: &Vec<&str>) -> Rc<ByteArchive> {
