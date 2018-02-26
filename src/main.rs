@@ -106,7 +106,10 @@ fn test_nested_input_for_list_action() {
 
 impl Action for ListActionInput {
     fn exec(&self) -> MsgResult<()> {
-        let mut inner_archive = parse_file_to_archive(&self.input_file_name, &self.nested_file_names);
+        let mut inner_archive = match parse_file_to_archive(&self.input_file_name, &self.nested_file_names) {
+            Err(e) => return Err(e),
+            Ok(val) => val
+        };
         for file_name in get_files_list(Rc::get_mut(&mut inner_archive).unwrap()) {
             println!("{}", file_name);
         }
@@ -162,7 +165,10 @@ fn test_nested_input_for_pipe_unpack_action() {
 
 impl Action for PipeUnpackActionInput {
     fn exec(&self) -> MsgResult<()> {
-        let mut inner_archive = parse_file_to_archive(&self.input_file_name, &self.nested_file_names);
+        let mut inner_archive = match parse_file_to_archive(&self.input_file_name, &self.nested_file_names) {
+            Err(e) => return Err(e),
+            Ok(val) => val
+        };
         let mut file = Rc::get_mut(&mut inner_archive).unwrap().by_name(self.unpack_target_file.as_ref()).unwrap();
 
         let mut buf = Vec::new();
@@ -240,18 +246,39 @@ fn test_get_files_list() {
     assert_eq!("test/test.txt", files_list[1]);
 }
 
-fn parse_file_to_archive<'a>(input_file_name: &'a String, nested_file_names: &'a Vec<String>) -> Rc<ByteArchive> {
-    let archive = new_from_file(Path::new(&input_file_name)).unwrap();
+fn parse_file_to_archive<'a>(input_file_name: &'a String, nested_file_names: &'a Vec<String>) -> MsgResult<Rc<ByteArchive>> {
+    let archive = match new_from_file(Path::new(&input_file_name)) {
+        Err(e) => return Err(e),
+        Ok(val) => val
+    };
     return parse_files_rec(Rc::new(archive), &string_vec_to_str_vec(&nested_file_names));
+}
+
+#[test]
+fn test_parsing_file_to_archive() {
+    let inner_files = Vec::new();
+    let mut archive = parse_file_to_archive(&"tests/resources/test.zip".to_string(), &inner_files).unwrap();
+    let files_list = get_files_list(Rc::get_mut(&mut archive).unwrap());
+
+    assert_eq!(2, files_list.len());
+    assert_eq!("test/", files_list[0]);
+    assert_eq!("test/test.txt", files_list[1]);
+}
+
+#[test]
+fn test_parsing_txt_file_to_archive() {
+    let inner_files = Vec::new();
+    let archive = parse_file_to_archive(&"tests/resources/test.txt".to_string(), &inner_files);
+    assert_eq!("File is not a zip file", archive.err().unwrap());
 }
 
 fn string_vec_to_str_vec<'a>(input: &'a Vec<String>) -> Vec<&'a str> {
     return input.iter().map(|s| s.as_ref()).collect::<Vec<&str>>();
 }
 
-fn parse_files_rec(mut archive: Rc<ByteArchive>, rec_files: &Vec<&str>) -> Rc<ByteArchive> {
+fn parse_files_rec(mut archive: Rc<ByteArchive>, rec_files: &Vec<&str>) -> MsgResult<Rc<ByteArchive>> {
     if rec_files.is_empty() {
-        return archive;
+        return Ok(archive);
     } else {
         let source_file = rec_files[0];
         let deep_files = rec_files[1..].to_vec();
@@ -270,7 +297,7 @@ fn parse_files_rec(mut archive: Rc<ByteArchive>, rec_files: &Vec<&str>) -> Rc<By
 fn test_parsing_files_in_nested_zip() {
     let test_archive = new_from_file(Path::new("tests/resources/test-test.zip")).unwrap();
     let nested_archives = vec!["test.zip"];
-    let mut archive = parse_files_rec(Rc::new(test_archive), &nested_archives);
+    let mut archive = parse_files_rec(Rc::new(test_archive), &nested_archives).unwrap();
     let files_list = get_files_list(Rc::get_mut(&mut archive).unwrap());
 
     assert_eq!(2, files_list.len());
