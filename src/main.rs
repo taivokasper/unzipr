@@ -16,7 +16,7 @@ type MsgResult<T> = Result<T, &'static str>;
 
 fn main() {
     let matches = App::new("unzipr")
-        .version("0.2.0")
+        .version("0.3.0")
         .author("Taivo Käsper <taivo.kasper@gmail.com>")
         .about("An unzip library for unzipping a file from zip of zip of zip files")
         .arg(Arg::with_name("list")
