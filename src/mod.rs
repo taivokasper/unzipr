@@ -8,10 +8,10 @@ mod list;
 mod pipe;
 mod unpack;
 
-use common::*;
-use list::*;
-use pipe::*;
-use unpack::*;
+use common::{Action, MsgResult};
+use list::ListActionInput;
+use pipe::PipeUnpackActionInput;
+use unpack::UnpackActionInput;
 
 pub fn main() {
     let matches = App::new("unzipr")
