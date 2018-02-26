@@ -3,6 +3,10 @@ name = "unzipr"
 version = "0.3.0"
 authors = ["Taivo Käsper <taivo.kasper@gmail.com>"]
 
+[[bin]]
+name = "unzipr"
+path = "src/lib.rs"
+
 [dependencies]
 clap = "2.29.4"
 zip = "0.3.0"
