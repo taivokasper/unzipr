@@ -24,14 +24,31 @@ $ unzipr test-zip-of-zip.zip test.zip
 ```bash
 $ unzipr -d /tmp/target test-zip-of-zip.zip test.zip
 ```
-
-# Installing on MacOs with Homebrew
+# Installing
+## MacOs with Homebrew
 ```bash
 brew tap taivokasper/utilities
 brew install unzipr
 ```
 
+## 64-bit Linux
+* Download the latest release from [here](https://github.com/taivokasper/unzipr/releases)
+* Add the binary to path
+
+## Windows
+* Build from source :(
+
 # Building
 ```bash
 cargo build --release
 ```
+
+# Testing
+```bash
+cargo test
+cargo build
+./integration-tests.sh
+```
+
+# Contributing
+Issues and/or pull requests are welcome!
