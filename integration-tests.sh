@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
-binary=target/debug/unzipr
+binary=target/release/unzipr
 if [ ! -e "$binary" ]; then
-    binary=target/release/unzipr
+    binary=target/debug/unzipr
 fi
 
 function assert_code() {
@@ -151,3 +151,4 @@ code=$?
 
 assert_eq "Input file does not exist" "$output"
 assert_failure_code $code
+
