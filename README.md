@@ -16,6 +16,14 @@ test/test.txt
 $ unzipr -p test-zip-of-zip.zip test.zip test/test.txt
 Hello World!
 ```
+* Unpacking files from a nested zip file to current working directory
+```bash
+$ unzipr test-zip-of-zip.zip test.zip
+```
+* Unpacking files from a nested zip file to specific directory
+```bash
+$ unzipr -d /tmp/target test-zip-of-zip.zip test.zip
+```
 
 # Installing on MacOs with Homebrew
 ```bash
