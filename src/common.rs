@@ -6,6 +6,9 @@ use std::fs::File;
 use std::rc::Rc;
 use std::io;
 
+const NOT_ZIP_FILE: &str = "File is not a zip file";
+const FILE_DOES_NOT_EXIST: &str = "Input file does not exist";
+
 pub type ByteArchive = ZipArchive<Cursor<Vec<u8>>>;
 pub type MsgResult<T> = Result<T, &'static str>;
 
@@ -36,7 +39,7 @@ fn test_parsing_file_to_archive() {
 fn test_parsing_txt_file_to_archive() {
     let inner_files = Vec::new();
     let archive = parse_file_to_archive(&"tests/resources/test.txt".to_string(), &inner_files);
-    assert_eq!("File is not a zip file", archive.err().unwrap());
+    assert_eq!(NOT_ZIP_FILE, archive.err().unwrap());
 }
 
 fn string_vec_to_str_vec<'a>(input: &'a Vec<String>) -> Vec<&'a str> {
@@ -76,7 +79,7 @@ fn new_from_file(zip_file_path: &Path) -> MsgResult<ByteArchive> {
     let mut opened_file: File = match File::open(&zip_file_path) {
         Ok(f) => f,
         Err(e) => match e.kind() {
-            ErrorKind::NotFound => return Err("Input file does not exist"),
+            ErrorKind::NotFound => return Err(FILE_DOES_NOT_EXIST),
             kind => panic!("Unable to read input file: {:?}", kind)
         }
     };
@@ -86,7 +89,7 @@ fn new_from_file(zip_file_path: &Path) -> MsgResult<ByteArchive> {
 
     return match ZipArchive::new(Cursor::new(data)) {
         Ok(za) => Ok(za),
-        Err(ZipError::InvalidArchive(_)) => Err("File is not a zip file"),
+        Err(ZipError::InvalidArchive(_)) => Err(NOT_ZIP_FILE),
         Err(err) => panic!(err)
     };
 }
@@ -100,13 +103,13 @@ fn test_new_archive_from_file() {
 #[test]
 fn test_new_archive_from_nonexistent_file() {
     let archive = new_from_file(Path::new("tests/resources/does-not-exist.zip"));
-    assert_eq!("Input file does not exist", archive.err().unwrap());
+    assert_eq!(FILE_DOES_NOT_EXIST, archive.err().unwrap());
 }
 
 #[test]
 fn test_new_archive_from_nonzip_file() {
     let archive = new_from_file(Path::new("tests/resources/test.txt"));
-    assert_eq!("File is not a zip file", archive.err().unwrap());
+    assert_eq!(NOT_ZIP_FILE, archive.err().unwrap());
 }
 
 fn new_from_bytes(bytes: Vec<u8>) -> ByteArchive {

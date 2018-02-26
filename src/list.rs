@@ -9,26 +9,14 @@ pub struct ListActionInput {
 
 impl ListActionInput {
     pub fn new(input: Vec<&str>) -> MsgResult<Box<Action>> {
-        match input.as_slice().split_first() {
-            None => return Err("Not a valid input files argument. Should supply at least one value"),
-            Some(split_result) => {
-                let (input_file, nested_files) = split_result;
-
-                return Ok(Box::new(ListActionInput {
-                    input_file_name: input_file.to_string(),
-                    nested_file_names: nested_files.iter()
-                        .map(|x| x.to_string())
-                        .collect::<Vec<String>>(),
-                }));
-            }
-        };
+        let (input_file, nested_files) = input.as_slice().split_first().unwrap();
+        return Ok(Box::new(ListActionInput {
+            input_file_name: input_file.to_string(),
+            nested_file_names: nested_files.iter()
+                .map(|x| x.to_string())
+                .collect::<Vec<String>>(),
+        }));
     }
-}
-
-#[test]
-fn test_empty_input_for_list_action() {
-    let err = ListActionInput::new(Vec::new()).err().unwrap();
-    assert_eq!("Not a valid input files argument. Should supply at least one value", err);
 }
 
 #[test]
