@@ -53,10 +53,11 @@ pub fn main() {
         action = PipeUnpackActionInput::new(files.clone());
     } else {
         let path_buf = std::env::current_dir().unwrap();
-        let mut dir = path_buf.as_path().to_str().unwrap();
-        if matches.is_present("exdir") {
-            dir = matches.value_of("exdir").unwrap();
-        }
+        let dir = if matches.is_present("exdir") {
+            matches.value_of("exdir").unwrap()
+        } else {
+            path_buf.as_path().to_str().unwrap()
+        };
         action = UnpackActionInput::new(dir, files.clone());
     }
 

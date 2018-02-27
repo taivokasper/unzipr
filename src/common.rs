@@ -16,12 +16,12 @@ pub trait Action {
     fn exec(&self) -> MsgResult<()>;
 }
 
-pub fn parse_file_to_archive<'a>(input_file_name: &'a String, nested_file_names: &'a Vec<String>) -> MsgResult<Rc<ByteArchive>> {
+pub fn parse_file_to_archive(input_file_name: &str, nested_file_names: &[String]) -> MsgResult<Rc<ByteArchive>> {
     let archive = match new_from_file(Path::new(&input_file_name)) {
         Err(e) => return Err(e),
         Ok(val) => val
     };
-    return parse_files_rec(Rc::new(archive), &string_vec_to_str_vec(&nested_file_names));
+    return parse_files_rec(Rc::new(archive), &string_vec_to_str_vec(nested_file_names));
 }
 
 #[test]
@@ -42,11 +42,11 @@ fn test_parsing_txt_file_to_archive() {
     assert_eq!(NOT_ZIP_FILE, archive.err().unwrap());
 }
 
-fn string_vec_to_str_vec<'a>(input: &'a Vec<String>) -> Vec<&'a str> {
+fn string_vec_to_str_vec(input: &[String]) -> Vec<&str> {
     return input.iter().map(|s| s.as_ref()).collect::<Vec<&str>>();
 }
 
-fn parse_files_rec(mut archive: Rc<ByteArchive>, rec_files: &Vec<&str>) -> MsgResult<Rc<ByteArchive>> {
+fn parse_files_rec(mut archive: Rc<ByteArchive>, rec_files: &[&str]) -> MsgResult<Rc<ByteArchive>> {
     if rec_files.is_empty() {
         return Ok(archive);
     } else {

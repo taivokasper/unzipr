@@ -55,7 +55,7 @@ impl Action for PipeUnpackActionInput {
         let mut buf = Vec::new();
 
         io::copy(&mut file, &mut BufWriter::new(&mut buf)).unwrap();
-        io::stdout().write(&buf).unwrap();
+        io::stdout().write_all(&buf).unwrap();
         return Ok(());
     }
 }
