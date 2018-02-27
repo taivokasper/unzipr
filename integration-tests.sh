@@ -124,9 +124,26 @@ assert_success_code $code
 
 
 # Test 8
-# Test unpack doesn't overwrite files
+# Test unpacking to specific directory containing ..
 echo "Running test 8"
 test_dir=target/tests/test8
+rm -rf $test_dir
+mkdir -p "$test_dir/deep"
+
+expected_contents="Hello"
+output=`$binary -d "$test_dir/deep/.." tests/resources/test-test.zip test.zip`
+code=$?
+
+contents=`cat "$test_dir/test/test.txt"`
+assert_eq "" "$output"
+assert_eq "$expected_contents" "$contents"
+assert_success_code $code
+
+
+# Test 9
+# Test unpack doesn't overwrite files
+echo "Running test 9"
+test_dir=target/tests/test9
 rm -rf $test_dir
 mkdir -p $test_dir
 
@@ -139,10 +156,10 @@ assert_eq "Target file already exists" "$output"
 assert_failure_code $code
 
 
-# Test 9
+# Test 10
 # Test unpacking to dir fails for non-existent file
-echo "Running test 9"
-test_dir=target/tests/test9
+echo "Running test 10"
+test_dir=target/tests/test10
 rm -rf $test_dir
 mkdir -p $test_dir
 
