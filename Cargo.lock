@@ -184,7 +184,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "unzipr"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "clap 2.29.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "zip 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
