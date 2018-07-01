@@ -8,7 +8,7 @@ pub struct ListActionInput {
 }
 
 impl ListActionInput {
-    pub fn new(input: Vec<&str>) -> MsgResult<Box<Action>> {
+    pub fn new(input: Vec<&str>) -> Result<Box<Action>> {
         let (input_file, nested_files) = input.as_slice().split_first().unwrap();
         return Ok(Box::new(ListActionInput {
             input_file_name: input_file.to_string(),
@@ -20,7 +20,7 @@ impl ListActionInput {
 }
 
 impl Action for ListActionInput {
-    fn exec(&self) -> MsgResult<()> {
+    fn exec(&self) -> Result<()> {
         let mut inner_archive = match parse_file_to_archive(&self.input_file_name, &self.nested_file_names) {
             Err(e) => return Err(e),
             Ok(val) => val

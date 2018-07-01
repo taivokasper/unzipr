@@ -14,7 +14,7 @@ pub struct UnpackActionInput {
 }
 
 impl UnpackActionInput {
-    pub fn new(unpack_target: &str, input: Vec<&str>) -> MsgResult<Box<Action>> {
+    pub fn new(unpack_target: &str, input: Vec<&str>) -> Result<Box<Action>> {
         let (input_file, nested_files) = input.as_slice().split_first().unwrap();
         return Ok(Box::new(UnpackActionInput {
             unpack_target: unpack_target.to_string(),
@@ -27,7 +27,7 @@ impl UnpackActionInput {
 }
 
 impl Action for UnpackActionInput {
-    fn exec(&self) -> MsgResult<()> {
+    fn exec(&self) -> Result<()> {
         let mut inner_archive = match parse_file_to_archive(&self.input_file_name, &self.nested_file_names) {
             Err(e) => return Err(e),
             Ok(val) => val

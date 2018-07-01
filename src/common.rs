@@ -10,13 +10,13 @@ const NOT_ZIP_FILE: &str = "File is not a zip file";
 const FILE_DOES_NOT_EXIST: &str = "Input file does not exist";
 
 pub type ByteArchive = ZipArchive<Cursor<Vec<u8>>>;
-pub type MsgResult<T> = Result<T, &'static str>;
+pub type Result<T> = ::std::result::Result<T, &'static str>;
 
 pub trait Action {
-    fn exec(&self) -> MsgResult<()>;
+    fn exec(&self) -> Result<()>;
 }
 
-pub fn parse_file_to_archive(input_file_name: &str, nested_file_names: &[String]) -> MsgResult<Rc<ByteArchive>> {
+pub fn parse_file_to_archive(input_file_name: &str, nested_file_names: &[String]) -> Result<Rc<ByteArchive>> {
     let archive = match new_from_file(Path::new(&input_file_name)) {
         Err(e) => return Err(e),
         Ok(val) => val
@@ -28,7 +28,7 @@ fn string_vec_to_str_vec(input: &[String]) -> Vec<&str> {
     return input.iter().map(|s| s.as_ref()).collect::<Vec<&str>>();
 }
 
-fn parse_files_rec(mut archive: Rc<ByteArchive>, rec_files: &[&str]) -> MsgResult<Rc<ByteArchive>> {
+fn parse_files_rec(mut archive: Rc<ByteArchive>, rec_files: &[&str]) -> Result<Rc<ByteArchive>> {
     if rec_files.is_empty() {
         return Ok(archive);
     } else {
@@ -45,7 +45,7 @@ fn parse_files_rec(mut archive: Rc<ByteArchive>, rec_files: &[&str]) -> MsgResul
     }
 }
 
-fn new_from_file(zip_file_path: &Path) -> MsgResult<ByteArchive> {
+fn new_from_file(zip_file_path: &Path) -> Result<ByteArchive> {
     let mut opened_file: File = match File::open(&zip_file_path) {
         Ok(f) => f,
         Err(e) => match e.kind() {

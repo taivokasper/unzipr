@@ -8,7 +8,7 @@ mod list;
 mod pipe;
 mod unpack;
 
-use common::{Action, MsgResult};
+use common::{Action, Result};
 use list::ListActionInput;
 use pipe::PipeUnpackActionInput;
 use unpack::UnpackActionInput;
@@ -46,7 +46,7 @@ pub fn main() {
     let pipe = matches.is_present("pipe");
     let files: Vec<&str> = matches.values_of("files").unwrap().collect();
 
-    let action: MsgResult<Box<Action>>;
+    let action: Result<Box<Action>>;
     if list {
         action = ListActionInput::new(files.clone());
     } else if pipe {
