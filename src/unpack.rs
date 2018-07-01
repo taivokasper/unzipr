@@ -71,18 +71,6 @@ fn to_file_path(base: &str, filename: &str) -> PathBuf {
     return base_path.join(sanitize(filename));
 }
 
-#[test]
-fn test_abs_filename_not_out_of_dir() {
-    let file_name = to_file_path("/tmp/test/test2", "../../../etc/passwd");
-    assert_eq!(Path::new("/tmp/test/test2/etc/passwd"), file_name);
-}
-
-#[test]
-fn test_relative_paths_in_zip() {
-    let file_name = to_file_path("/tmp/test/test2", "test/test/../test.txt");
-    assert_eq!(Path::new("/tmp/test/test2/test/test/test.txt"), file_name);
-}
-
 fn sanitize(path: &str) -> PathBuf {
     return Path::new(path)
         .components()
@@ -92,23 +80,40 @@ fn sanitize(path: &str) -> PathBuf {
             _ => false,
         })
         .map(Component::as_os_str)
-        .collect::<PathBuf>()
+        .collect::<PathBuf>();
 }
 
-#[test]
-fn test_sanitize_removes_parent() {
-    let val = sanitize("test/test/../test.txt");
-    assert_eq!(Path::new("test/test/test.txt"), val);
-}
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-#[test]
-fn test_sanitize_removes_root() {
-    let val = sanitize("/test/test.txt");
-    assert_eq!(Path::new("test/test.txt"), val);
-}
+    #[test]
+    fn test_abs_filename_not_out_of_dir() {
+        let file_name = to_file_path("/tmp/test/test2", "../../../etc/passwd");
+        assert_eq!(Path::new("/tmp/test/test2/etc/passwd"), file_name);
+    }
 
-#[test]
-fn test_sanitize_removes_current_dir() {
-    let val = sanitize("test/./test.txt");
-    assert_eq!(Path::new("test/test.txt"), val);
+    #[test]
+    fn test_relative_paths_in_zip() {
+        let file_name = to_file_path("/tmp/test/test2", "test/test/../test.txt");
+        assert_eq!(Path::new("/tmp/test/test2/test/test/test.txt"), file_name);
+    }
+
+    #[test]
+    fn test_sanitize_removes_parent() {
+        let val = sanitize("test/test/../test.txt");
+        assert_eq!(Path::new("test/test/test.txt"), val);
+    }
+
+    #[test]
+    fn test_sanitize_removes_root() {
+        let val = sanitize("/test/test.txt");
+        assert_eq!(Path::new("test/test.txt"), val);
+    }
+
+    #[test]
+    fn test_sanitize_removes_current_dir() {
+        let val = sanitize("test/./test.txt");
+        assert_eq!(Path::new("test/test.txt"), val);
+    }
 }

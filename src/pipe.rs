@@ -33,17 +33,6 @@ impl PipeUnpackActionInput {
     }
 }
 
-#[test]
-fn test_single_input_for_pipe_unpack_action() {
-    let err = PipeUnpackActionInput::new(["test_input_file"].to_vec()).err().unwrap();
-    assert_eq!(UNPACK_TARGET_MISSING, err);
-}
-
-#[test]
-fn test_nested_input_for_pipe_unpack_action() {
-    PipeUnpackActionInput::new(["test_input_file", "inner_nested_file"].to_vec()).unwrap();
-}
-
 impl Action for PipeUnpackActionInput {
     fn exec(&self) -> MsgResult<()> {
         let mut inner_archive = match parse_file_to_archive(&self.input_file_name, &self.nested_file_names) {
@@ -57,5 +46,21 @@ impl Action for PipeUnpackActionInput {
         io::copy(&mut file, &mut BufWriter::new(&mut buf)).unwrap();
         io::stdout().write_all(&buf).unwrap();
         return Ok(());
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_single_input_for_pipe_unpack_action() {
+        let err = PipeUnpackActionInput::new(["test_input_file"].to_vec()).err().unwrap();
+        assert_eq!(UNPACK_TARGET_MISSING, err);
+    }
+
+    #[test]
+    fn test_nested_input_for_pipe_unpack_action() {
+        PipeUnpackActionInput::new(["test_input_file", "inner_nested_file"].to_vec()).unwrap();
     }
 }

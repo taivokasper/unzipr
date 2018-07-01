@@ -19,16 +19,6 @@ impl ListActionInput {
     }
 }
 
-#[test]
-fn test_single_input_for_list_action() {
-    ListActionInput::new(["test_input_file"].to_vec()).unwrap();
-}
-
-#[test]
-fn test_nested_input_for_list_action() {
-    ListActionInput::new(["test_input_file", "inner_nested_file"].to_vec()).unwrap();
-}
-
 impl Action for ListActionInput {
     fn exec(&self) -> MsgResult<()> {
         let mut inner_archive = match parse_file_to_archive(&self.input_file_name, &self.nested_file_names) {
@@ -39,5 +29,20 @@ impl Action for ListActionInput {
             println!("{}", file_name);
         }
         return Ok(());
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_single_input_for_list_action() {
+        ListActionInput::new(["test_input_file"].to_vec()).unwrap();
+    }
+
+    #[test]
+    fn test_nested_input_for_list_action() {
+        ListActionInput::new(["test_input_file", "inner_nested_file"].to_vec()).unwrap();
     }
 }
