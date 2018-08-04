@@ -1,10 +1,8 @@
 use common::*;
-
-use std::io;
-use std::path::Path;
-use std::path::PathBuf;
-use std::path::Component;
-use std::fs;
+use error::{Error, ErrorKind};
+use failure::ResultExt;
+use std::{fs, io};
+use std::path::{Component, Path, PathBuf};
 use std::rc::Rc;
 
 pub struct UnpackActionInput {
@@ -14,42 +12,47 @@ pub struct UnpackActionInput {
 }
 
 impl UnpackActionInput {
-    pub fn new(unpack_target: &str, input: Vec<&str>) -> Result<Box<Action>> {
+    pub fn new(unpack_target: &str, input: Vec<&str>) -> Result<Box<Action>, Error> {
         let (input_file, nested_files) = input.as_slice().split_first().unwrap();
-        return Ok(Box::new(UnpackActionInput {
+
+        let action_input = UnpackActionInput {
             unpack_target: unpack_target.to_string(),
             input_file_name: input_file.to_string(),
             nested_file_names: nested_files.iter()
                 .map(|x| x.to_string())
                 .collect::<Vec<String>>(),
-        }));
+        };
+
+        Ok(Box::new(action_input))
     }
 }
 
 impl Action for UnpackActionInput {
-    fn exec(&self) -> Result<()> {
-        let mut inner_archive = match parse_file_to_archive(&self.input_file_name, &self.nested_file_names) {
-            Err(e) => return Err(e),
-            Ok(val) => val
-        };
+    fn exec(&self) -> Result<(), Error> {
+        let mut inner_archive = parse_file_to_archive(&self.input_file_name, &self.nested_file_names)?;
         let archive = Rc::get_mut(&mut inner_archive).unwrap();
 
         for index in 0..archive.len() {
             let mut zip_file = archive.by_index(index).unwrap();
             let out_path = to_file_path(self.unpack_target.as_str(), zip_file.name());
+            let out_path_string = out_path.to_str().unwrap().to_string();
 
             if zip_file.name().ends_with('/') {
-                fs::create_dir_all(&out_path).unwrap();
+                fs::create_dir_all(&out_path)
+                    .context(ErrorKind::CannotCreateDirectory(out_path_string.clone()))?;
             } else {
                 if out_path.exists() {
-                    return Err("Target file already exists");
+                    return Err(Error::from(ErrorKind::TargetAlreadyExists(out_path_string.clone())));
                 }
                 let parent_dir = out_path.parent().unwrap();
+                let parent_dir_string = out_path.to_str().unwrap().to_string();
                 if !parent_dir.exists() {
-                    fs::create_dir_all(&parent_dir).unwrap();
+                    fs::create_dir_all(&parent_dir)
+                        .context(ErrorKind::CannotCreateDirectory(parent_dir_string))?;
                 }
-                let mut out_file = fs::File::create(&out_path).unwrap();
-                io::copy(&mut zip_file, &mut out_file).unwrap();
+                let mut out_file = fs::File::create(&out_path)
+                    .context(ErrorKind::CannotCreateFile(out_path_string.clone()))?;
+                io::copy(&mut zip_file, &mut out_file)?;
             }
 
             #[cfg(unix)]
@@ -57,22 +60,23 @@ impl Action for UnpackActionInput {
                     use std::os::unix::fs::PermissionsExt;
 
                     if let Some(mode) = zip_file.unix_mode() {
-                        fs::set_permissions(&out_path, fs::Permissions::from_mode(mode)).unwrap();
+                        fs::set_permissions(&out_path, fs::Permissions::from_mode(mode))
+                            .context(ErrorKind::CannotSetPermissions(mode, out_path_string.clone()))?;
                     }
                 }
         }
 
-        return Ok(());
+        Ok(())
     }
 }
 
 fn to_file_path(base: &str, filename: &str) -> PathBuf {
     let base_path = Path::new(base);
-    return base_path.join(sanitize(filename));
+    base_path.join(sanitize(filename))
 }
 
 fn sanitize(path: &str) -> PathBuf {
-    return Path::new(path)
+    Path::new(path)
         .components()
         // Filter out everything not part of a normal path e.g. ., .. etc.
         .filter(|component| match *component {
@@ -80,7 +84,7 @@ fn sanitize(path: &str) -> PathBuf {
             _ => false,
         })
         .map(Component::as_os_str)
-        .collect::<PathBuf>();
+        .collect::<PathBuf>()
 }
 
 #[cfg(test)]

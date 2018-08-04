@@ -1,14 +1,18 @@
 extern crate clap;
 extern crate zip;
+#[macro_use]
+extern crate failure;
 
 use clap::{Arg, App};
 
+mod error;
 mod common;
 mod list;
 mod pipe;
 mod unpack;
 
-use common::{Action, Result};
+use error::Error;
+use common::Action;
 use list::ListActionInput;
 use pipe::PipeUnpackActionInput;
 use unpack::UnpackActionInput;
@@ -46,7 +50,7 @@ pub fn main() {
     let pipe = matches.is_present("pipe");
     let files: Vec<&str> = matches.values_of("files").unwrap().collect();
 
-    let action: Result<Box<Action>>;
+    let action: Result<Box<Action>, Error>;
     if list {
         action = ListActionInput::new(files.clone());
     } else if pipe {
@@ -70,7 +74,7 @@ pub fn main() {
     };
 }
 
-fn unwrap_process_result(msg: &'static str) {
+fn unwrap_process_result(msg: Error) {
     println!("{}", msg);
     std::process::exit(1);
 }
