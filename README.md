@@ -1,6 +1,13 @@
 # Unzipr
-[![Build Status](https://travis-ci.org/taivokasper/unzipr.svg?branch=master)](https://travis-ci.org/taivokasper/unzipr)
-[![release](http://github-release-version.herokuapp.com/github/taivokasper/unzipr/release.svg?style=flat)](https://github.com/taivokasper/unzipr/releases/latest)
+![Travis build status](https://img.shields.io/travis/taivokasper/unzipr.svg)
+![GitHub latest release](https://img.shields.io/github/release/taivokasper/unzipr.svg)
+![Dependencies up-to-date](https://img.shields.io/librariesio/github/taivokasper/unzipr.svg)
+
+![Latest version downloads](https://img.shields.io/github/downloads/taivokasper/unzipr/latest/total.svg)
+![Total downloads](https://img.shields.io/github/downloads/taivokasper/unzipr/total.svg)
+
+![Commit activity the past year](https://img.shields.io/github/commit-activity/y/taivokasper/unzipr.svg)
+![Contributors](https://img.shields.io/github/contributors/taivokasper/unzipr.svg)
 
 A command line utility for in-memory listing and unpacking files from nested zip files.
 
