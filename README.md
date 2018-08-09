@@ -1,13 +1,13 @@
 # Unzipr
-![Travis build status](https://img.shields.io/travis/taivokasper/unzipr.svg)
-![GitHub latest release](https://img.shields.io/github/release/taivokasper/unzipr.svg)
-![Dependencies up-to-date](https://img.shields.io/librariesio/github/taivokasper/unzipr.svg)
+[![Travis build status](https://img.shields.io/travis/taivokasper/unzipr.svg)](https://travis-ci.org/taivokasper/unzipr)
+[![GitHub latest release](https://img.shields.io/github/release/taivokasper/unzipr.svg)](https://github.com/taivokasper/unzipr/releases/latest)
+[![Dependencies up-to-date](https://img.shields.io/librariesio/github/taivokasper/unzipr.svg)](https://github.com/taivokasper/unzipr/blob/master/Cargo.toml)
 
-![Latest version downloads](https://img.shields.io/github/downloads/taivokasper/unzipr/latest/total.svg)
-![Total downloads](https://img.shields.io/github/downloads/taivokasper/unzipr/total.svg)
+[![Latest version downloads](https://img.shields.io/github/downloads/taivokasper/unzipr/latest/total.svg)](https://github.com/taivokasper/unzipr/releases/latest)
+[![Total downloads](https://img.shields.io/github/downloads/taivokasper/unzipr/total.svg)](https://github.com/taivokasper/unzipr/releases)
 
-![Commit activity the past year](https://img.shields.io/github/commit-activity/y/taivokasper/unzipr.svg)
-![Contributors](https://img.shields.io/github/contributors/taivokasper/unzipr.svg)
+[![Commit activity the past year](https://img.shields.io/github/commit-activity/y/taivokasper/unzipr.svg)](https://github.com/taivokasper/unzipr/commits)
+[![Contributors](https://img.shields.io/github/contributors/taivokasper/unzipr.svg)](https://github.com/taivokasper/unzipr/graphs/contributors)
 
 A command line utility for in-memory listing and unpacking files from nested zip files.
 
