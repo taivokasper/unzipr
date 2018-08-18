@@ -19,9 +19,9 @@ use unpack::UnpackActionInput;
 
 pub fn main() {
     let matches = App::new("unzipr")
-        .version("0.3.1")
+        .version("0.4.0")
         .author("Taivo Käsper <taivo.kasper@gmail.com>")
-        .about("An unzip library for unzipping a file from zip of zip of zip files")
+        .about("For in-memory listing and unpacking files from nested zip archives")
         .arg(Arg::with_name("list")
             .short("l")
             .long("list")
