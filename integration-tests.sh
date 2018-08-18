@@ -69,7 +69,7 @@ assert_success_code $code
 echo "Running test 4"
 output=`$binary -l tests/resources/test.txt`
 code=$?
-expected="File is not a zip file"
+expected="File 'tests/resources/test.txt' is not a zip archive"
 
 assert_eq "$expected" "$output"
 assert_failure_code $code
@@ -80,7 +80,7 @@ assert_failure_code $code
 echo "Running test 5"
 output=`$binary -l tests/resources/asdf`
 code=$?
-expected="Input file does not exist"
+expected="No such file or directory 'tests/resources/asdf'"
 
 assert_eq "$expected" "$output"
 assert_failure_code $code
@@ -152,7 +152,7 @@ output=`$binary -d $test_dir tests/resources/test-test.zip test.zip`
 output=`$binary -d $test_dir tests/resources/test-test.zip test.zip`
 code=$?
 
-assert_eq "Target file already exists" "$output"
+assert_eq "Unpack target 'target/tests/test9/test/test.txt' already exists" "$output"
 assert_failure_code $code
 
 
@@ -166,6 +166,6 @@ mkdir -p $test_dir
 output=`$binary -d $test_dir tests/resources/asdf`
 code=$?
 
-assert_eq "Input file does not exist" "$output"
+assert_eq "No such file or directory 'tests/resources/asdf'" "$output"
 assert_failure_code $code
 

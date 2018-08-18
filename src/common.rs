@@ -1,96 +1,88 @@
-use zip::ZipArchive;
-use zip::result::ZipError;
-use std::io::{BufWriter, Cursor, Read, ErrorKind};
-use std::path::Path;
+use error::{Error, ErrorKind};
+use failure::ResultExt;
 use std::fs::File;
+use std::io::{self, BufWriter, Cursor, Read};
+use std::path::Path;
 use std::rc::Rc;
-use std::io;
-
-const NOT_ZIP_FILE: &str = "File is not a zip file";
-const FILE_DOES_NOT_EXIST: &str = "Input file does not exist";
+use zip::result::ZipError as ZipErrorKind;
+use zip::ZipArchive;
 
 pub type ByteArchive = ZipArchive<Cursor<Vec<u8>>>;
-pub type Result<T> = ::std::result::Result<T, &'static str>;
 
 pub trait Action {
-    fn exec(&self) -> Result<()>;
+    fn exec(&self) -> Result<(), Error>;
 }
 
-pub fn parse_file_to_archive(input_file_name: &str, nested_file_names: &[String]) -> Result<Rc<ByteArchive>> {
-    let archive = match new_from_file(Path::new(&input_file_name)) {
-        Err(e) => return Err(e),
-        Ok(val) => val
-    };
-    return parse_files_rec(Rc::new(archive), &string_vec_to_str_vec(nested_file_names));
+pub fn parse_file_to_archive(input_file_name: &str, nested_file_names: &[String]) -> Result<Rc<ByteArchive>, Error> {
+    let archive = new_from_file(Path::new(&input_file_name))?;
+    parse_files_rec(Rc::new(archive), &string_vec_to_str_vec(nested_file_names))
 }
 
 fn string_vec_to_str_vec(input: &[String]) -> Vec<&str> {
-    return input.iter().map(|s| s.as_ref()).collect::<Vec<&str>>();
+    input.iter().map(|s| s.as_ref()).collect::<Vec<&str>>()
 }
 
-fn parse_files_rec(mut archive: Rc<ByteArchive>, rec_files: &[&str]) -> Result<Rc<ByteArchive>> {
+fn parse_files_rec(mut archive: Rc<ByteArchive>, rec_files: &[&str]) -> Result<Rc<ByteArchive>, Error> {
     if rec_files.is_empty() {
-        return Ok(archive);
+        Ok(archive)
     } else {
         let source_file = rec_files[0];
         let deep_files = rec_files[1..].to_vec();
 
-        let mut file = Rc::get_mut(&mut archive).unwrap().by_name(source_file).unwrap();
+        let mut file = Rc::get_mut(&mut archive).unwrap().by_name(source_file)
+            .context(ErrorKind::ZipFileEntryNotFound(source_file.to_string()))?;
 
         let mut buf = Vec::new();
-        io::copy(&mut file, &mut BufWriter::new(&mut buf)).unwrap();
+        io::copy(&mut file, &mut BufWriter::new(&mut buf))?;
 
-        let new_archive = new_from_bytes(buf);
-        return parse_files_rec(Rc::new(new_archive), &deep_files);
+        let new_archive = new_from_bytes(buf)
+            .context(ErrorKind::ZipEntryNotZipArchive(source_file.to_string()))?;
+        parse_files_rec(Rc::new(new_archive), &deep_files)
     }
 }
 
-fn new_from_file(zip_file_path: &Path) -> Result<ByteArchive> {
-    let mut opened_file: File = match File::open(&zip_file_path) {
-        Ok(f) => f,
-        Err(e) => match e.kind() {
-            ErrorKind::NotFound => return Err(FILE_DOES_NOT_EXIST),
-            kind => panic!("Unable to read input file: {:?}", kind)
-        }
-    };
+fn new_from_file(zip_file_path: &Path) -> Result<ByteArchive, Error> {
+    let file_path_str = zip_file_path.to_str().unwrap();
+
+    let mut opened_file: File = File::open(&zip_file_path)
+        .context(ErrorKind::DoesNotExist(file_path_str.to_string()))?;
 
     let mut data = Vec::new();
-    opened_file.read_to_end(&mut data).unwrap();
+    opened_file.read_to_end(&mut data)?;
 
-    return match ZipArchive::new(Cursor::new(data)) {
-        Ok(za) => Ok(za),
-        Err(ZipError::InvalidArchive(_)) => Err(NOT_ZIP_FILE),
-        Err(err) => panic!(err)
-    };
+    let zip_file_archive = ZipArchive::new(Cursor::new(data))
+        .context(ErrorKind::NotZipArchive(file_path_str.to_string()))?;
+
+    Ok(zip_file_archive)
 }
 
-fn new_from_bytes(bytes: Vec<u8>) -> ByteArchive {
-    return ZipArchive::new(Cursor::new(bytes)).unwrap();
+fn new_from_bytes(bytes: Vec<u8>) -> Result<ByteArchive, ZipErrorKind> {
+    ZipArchive::new(Cursor::new(bytes))
 }
 
-pub fn get_files_list(archive: &mut ByteArchive) -> Vec<String> {
+pub fn get_files_list(archive: &mut ByteArchive) -> Result<Vec<String>, Error> {
     let mut name_vec = Vec::new();
     for i in 0..archive.len() {
         let file = archive.by_index(i).unwrap();
         name_vec.push(file.name().to_string())
     }
-    return name_vec;
+    Ok(name_vec)
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use std::path::Path;
     use std::fs::File;
-    use std::io::BufWriter;
     use std::io;
+    use std::io::BufWriter;
+    use std::path::Path;
     use std::rc::Rc;
+    use super::*;
 
     #[test]
     fn test_parsing_file_to_archive() {
         let inner_files = Vec::new();
         let mut archive = parse_file_to_archive(&"tests/resources/test.zip".to_string(), &inner_files).unwrap();
-        let files_list = get_files_list(Rc::get_mut(&mut archive).unwrap());
+        let files_list = get_files_list(Rc::get_mut(&mut archive).unwrap()).unwrap();
 
         assert_eq!(2, files_list.len());
         assert_eq!("test/", files_list[0]);
@@ -99,9 +91,10 @@ mod tests {
 
     #[test]
     fn test_parsing_txt_file_to_archive() {
+        let txt_file = "tests/resources/test.txt".to_string();
         let inner_files = Vec::new();
-        let archive = parse_file_to_archive(&"tests/resources/test.txt".to_string(), &inner_files);
-        assert_eq!(NOT_ZIP_FILE, archive.err().unwrap());
+        let archive = parse_file_to_archive(&txt_file, &inner_files);
+        assert_eq!(ErrorKind::NotZipArchive(txt_file), archive.err().unwrap().kind());
     }
 
     #[test]
@@ -109,7 +102,7 @@ mod tests {
         let test_archive = new_from_file(Path::new("tests/resources/test-test.zip")).unwrap();
         let nested_archives = vec!["test.zip"];
         let mut archive = parse_files_rec(Rc::new(test_archive), &nested_archives).unwrap();
-        let files_list = get_files_list(Rc::get_mut(&mut archive).unwrap());
+        let files_list = get_files_list(Rc::get_mut(&mut archive).unwrap()).unwrap();
 
         assert_eq!(2, files_list.len());
         assert_eq!("test/", files_list[0]);
@@ -124,14 +117,16 @@ mod tests {
 
     #[test]
     fn test_new_archive_from_nonexistent_file() {
-        let archive = new_from_file(Path::new("tests/resources/does-not-exist.zip"));
-        assert_eq!(FILE_DOES_NOT_EXIST, archive.err().unwrap());
+        let non_existent_file = "tests/resources/does-not-exist.zip";
+        let archive = new_from_file(Path::new(non_existent_file));
+        assert_eq!(ErrorKind::DoesNotExist(non_existent_file.to_string()), archive.err().unwrap().kind());
     }
 
     #[test]
     fn test_new_archive_from_nonzip_file() {
-        let archive = new_from_file(Path::new("tests/resources/test.txt"));
-        assert_eq!(NOT_ZIP_FILE, archive.err().unwrap());
+        let test_txt_file = "tests/resources/test.txt";
+        let archive = new_from_file(Path::new(test_txt_file));
+        assert_eq!(ErrorKind::NotZipArchive(test_txt_file.to_string()), archive.err().unwrap().kind());
     }
 
     #[test]
@@ -140,7 +135,7 @@ mod tests {
 
         let mut buf = Vec::new();
         io::copy(&mut opened_file, &mut BufWriter::new(&mut buf)).unwrap();
-        let archive = new_from_bytes(buf);
+        let archive = new_from_bytes(buf).unwrap();
 
         assert_eq!(2, archive.len());
     }
@@ -148,7 +143,7 @@ mod tests {
     #[test]
     fn test_get_files_list() {
         let mut archive = new_from_file(Path::new("tests/resources/test.zip")).unwrap();
-        let files_list = get_files_list(&mut archive);
+        let files_list = get_files_list(&mut archive).unwrap();
 
         assert_eq!(2, files_list.len());
         assert_eq!("test/", files_list[0]);

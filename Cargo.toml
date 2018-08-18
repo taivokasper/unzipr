@@ -10,3 +10,4 @@ path = "src/mod.rs"
 [dependencies]
 clap = "2.29.4"
 zip = "0.3.0"
+failure = "0.1.1"

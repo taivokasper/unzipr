@@ -1,10 +1,8 @@
 use common::*;
-
-use std::io;
-use std::io::{BufWriter, Write};
+use error::{Error, ErrorKind};
+use failure::ResultExt;
+use std::io::{self, BufWriter, Write};
 use std::rc::Rc;
-
-const UNPACK_TARGET_MISSING: &str = "Cannot get unpack target file";
 
 pub struct PipeUnpackActionInput {
     input_file_name: String,
@@ -13,39 +11,35 @@ pub struct PipeUnpackActionInput {
 }
 
 impl PipeUnpackActionInput {
-    pub fn new(input: Vec<&str>) -> Result<Box<Action>> {
+    pub fn new(input: Vec<&str>) -> Result<Box<Action>, Error> {
         let (input_file, nested_files) = input.as_slice().split_first().unwrap();
 
-        match nested_files.split_last() {
-            None => return Err(UNPACK_TARGET_MISSING),
-            Some(second_split_result) => {
-                let (target_file, middle_files) = second_split_result;
+        let (target_file, middle_files) = nested_files.split_last()
+            .ok_or(ErrorKind::UnpackTargetMissing)?;
 
-                return Ok(Box::new(PipeUnpackActionInput {
-                    input_file_name: input_file.to_string(),
-                    nested_file_names: middle_files.iter()
-                        .map(|x| x.to_string())
-                        .collect::<Vec<String>>(),
-                    unpack_target_file: target_file.to_string(),
-                }));
-            }
-        }
+        let action_input = PipeUnpackActionInput {
+            input_file_name: input_file.to_string(),
+            nested_file_names: middle_files.iter()
+                .map(|x| x.to_string())
+                .collect::<Vec<String>>(),
+            unpack_target_file: target_file.to_string(),
+        };
+
+        Ok(Box::new(action_input))
     }
 }
 
 impl Action for PipeUnpackActionInput {
-    fn exec(&self) -> Result<()> {
-        let mut inner_archive = match parse_file_to_archive(&self.input_file_name, &self.nested_file_names) {
-            Err(e) => return Err(e),
-            Ok(val) => val
-        };
-        let mut file = Rc::get_mut(&mut inner_archive).unwrap().by_name(self.unpack_target_file.as_ref()).unwrap();
+    fn exec(&self) -> Result<(), Error> {
+        let mut inner_archive = parse_file_to_archive(&self.input_file_name, &self.nested_file_names)?;
+        let mut file = Rc::get_mut(&mut inner_archive).unwrap().by_name(&self.unpack_target_file)
+            .context(ErrorKind::ZipFileEntryNotFound(self.unpack_target_file.clone()))?;
 
         let mut buf = Vec::new();
 
-        io::copy(&mut file, &mut BufWriter::new(&mut buf)).unwrap();
-        io::stdout().write_all(&buf).unwrap();
-        return Ok(());
+        io::copy(&mut file, &mut BufWriter::new(&mut buf))?;
+        io::stdout().write_all(&buf)?;
+        Ok(())
     }
 }
 
@@ -55,8 +49,8 @@ mod tests {
 
     #[test]
     fn test_single_input_for_pipe_unpack_action() {
-        let err = PipeUnpackActionInput::new(["test_input_file"].to_vec()).err().unwrap();
-        assert_eq!(UNPACK_TARGET_MISSING, err);
+        let err_kind = PipeUnpackActionInput::new(["test_input_file"].to_vec()).err().unwrap().kind();
+        assert_eq!(ErrorKind::UnpackTargetMissing, err_kind);
     }
 
     #[test]

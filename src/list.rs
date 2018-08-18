@@ -1,5 +1,5 @@
 use common::*;
-
+use error::Error;
 use std::rc::Rc;
 
 pub struct ListActionInput {
@@ -8,27 +8,27 @@ pub struct ListActionInput {
 }
 
 impl ListActionInput {
-    pub fn new(input: Vec<&str>) -> Result<Box<Action>> {
+    pub fn new(input: Vec<&str>) -> Result<Box<Action>, Error> {
         let (input_file, nested_files) = input.as_slice().split_first().unwrap();
-        return Ok(Box::new(ListActionInput {
+
+        let action_input = ListActionInput {
             input_file_name: input_file.to_string(),
             nested_file_names: nested_files.iter()
                 .map(|x| x.to_string())
                 .collect::<Vec<String>>(),
-        }));
+        };
+
+        Ok(Box::new(action_input))
     }
 }
 
 impl Action for ListActionInput {
-    fn exec(&self) -> Result<()> {
-        let mut inner_archive = match parse_file_to_archive(&self.input_file_name, &self.nested_file_names) {
-            Err(e) => return Err(e),
-            Ok(val) => val
-        };
-        for file_name in get_files_list(Rc::get_mut(&mut inner_archive).unwrap()) {
+    fn exec(&self) -> Result<(), Error> {
+        let mut inner_archive = parse_file_to_archive(&self.input_file_name, &self.nested_file_names)?;
+        for file_name in get_files_list(Rc::get_mut(&mut inner_archive).unwrap())? {
             println!("{}", file_name);
         }
-        return Ok(());
+        Ok(())
     }
 }
 
